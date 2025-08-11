@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume  #k8s有哪些volume
+metadata:
+  name: my-loacl-pv
+  labels:
+    role: my-loacl-pv
+spec:
+  storageClassName: suibian
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"

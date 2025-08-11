@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+#说明使用的资源，定义资源名称
+kind: Deployment
+metadata:
+  name: webook
+#资源的规格说明
+spec:  #管理几个，如何确定管理对象，定义pod模板
+#  pod数量为3
+  replicas: 2
+#识别需要管理的pod
+  selector:
+#  通过标签匹配
+    matchLabels:
+      app: webook
+#Pod 的模板
+  template:
+#    定义pod的名字
+    metadata:
+      labels:
+        app: webook
+    spec:
+#      定义容器
+      containers:
+#        定义一个名叫webook的容器
+        - name:   webook
+#          说明容器使用的镜像
+          image:  flycash/webook:v0.0.1
+#          容器监听 8080 端口
+          ports:
+            - containerPort: 8081

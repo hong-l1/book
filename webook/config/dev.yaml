@@ -1,0 +1,6 @@
+db:
+  mysql:
+    dsn: "root:123456@tcp(localhost:6380)/webook?charset=utf8mb4&parseTime=True&loc=Local"
+redis:
+  addr: ""
+abc: "helloc"
