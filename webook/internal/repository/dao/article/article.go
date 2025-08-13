@@ -4,15 +4,50 @@ import (
 	"context"
 	"fmt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"time"
 )
 
 type ArticleDao interface {
 	Insert(ctx context.Context, art Article) (int64, error)
 	UpdateById(ctx context.Context, art Article) error
+	Sync(ctx context.Context, art Article) (int64, error)
+	Upsert(ctx context.Context, art PublishArticleDAO) error
 }
 type GORMArticleDao struct {
 	db *gorm.DB
+}
+
+func (g *GORMArticleDao) Upsert(ctx context.Context, art PublishArticleDAO) error {
+	now := time.Now().UnixMilli()
+	art.Ctime = now
+	art.Utime = now
+	err := g.db.Clauses(clause.OnConflict{
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"title":   art.Title,
+			"content": art.Content,
+			"utime":   now,
+		}),
+	}).Create(&art).Error
+	return err
+}
+
+func (g *GORMArticleDao) Sync(ctx context.Context, art Article) (int64, error) {
+	var id = art.Id
+	err := g.db.Transaction(func(tx *gorm.DB) error {
+		var err error
+		txdao := NewGORMArticleDao(tx)
+		if id > 0 {
+			err = txdao.UpdateById(ctx, art)
+		} else {
+			id, err = txdao.Insert(ctx, art)
+		}
+		if err != nil {
+			return err
+		}
+		return txdao.Upsert(ctx, PublishArticleDAO{Article: art})
+	})
+	return id, err
 }
 
 func (g *GORMArticleDao) UpdateById(ctx context.Context, art Article) error {

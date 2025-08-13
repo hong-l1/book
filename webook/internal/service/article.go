@@ -40,7 +40,7 @@ func (s *ServiceArticle) Save(ctx context.Context, article domain.Article) (int6
 	return s.repo.Create(ctx, article)
 }
 func (s *ServiceArticle) Publish(ctx context.Context, article domain.Article) (int64, error) {
-	return s.repo.Sync(ctx, article)
+	return s.repo.Syncv1(ctx, article)
 }
 func (s *ServiceArticle) Publishv1(ctx context.Context, article domain.Article) (int64, error) {
 	var (

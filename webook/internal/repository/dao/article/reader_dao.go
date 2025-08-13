@@ -1,8 +1,18 @@
 package article
 
-import "context"
+import (
+	"context"
+	"gorm.io/gorm"
+)
 
 type ReaderDao interface {
 	Upsert(ctx context.Context, art Article) error
 }
-type Publish
+
+func NewReaderDAO(db *gorm.DB) ReaderDao {
+	panic("implement me")
+}
+
+type PublishArticleDAO struct {
+	Article
+}

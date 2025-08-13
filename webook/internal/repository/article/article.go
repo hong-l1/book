@@ -10,6 +10,7 @@ import (
 type ArticleRepository interface {
 	Create(ctx context.Context, art domain.Article) (int64, error)
 	Update(ctx context.Context, art domain.Article) error
+	//存储并同步
 	Syncv1(ctx context.Context, art domain.Article) (int64, error)
 }
 type CacheArticle struct {
@@ -19,8 +20,34 @@ type CacheArticle struct {
 	db     *gorm.DB
 }
 
+func (r *CacheArticle) Sync(ctx context.Context, art domain.Article) (int64, error) {
+	return r.dao.Sync(ctx, r.toEntity(art))
+}
 func (r *CacheArticle) Syncv2(ctx context.Context, art domain.Article) (int64, error) {
+	tx := r.db.WithContext(ctx).Begin()
+	if err := tx.Error; err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	author := article.NewAuthorDAO(tx)
+	reader := article.NewReaderDAO(tx)
+	var (
+		id  = art.Id
+		err error
+	)
+	templ := r.toEntity(art)
+	if art.Id > 0 {
+		err = author.UpdateById(ctx, templ)
+	} else {
+		id, err = author.Insert(ctx, templ)
+	}
+	if err != nil {
 
+		return id, err
+	}
+	err = reader.Upsert(ctx, templ)
+	tx.Commit()
+	return id, err
 }
 func (r *CacheArticle) Syncv1(ctx context.Context, art domain.Article) (int64, error) {
 	var (
@@ -34,6 +61,7 @@ func (r *CacheArticle) Syncv1(ctx context.Context, art domain.Article) (int64, e
 		id, err = r.author.Insert(ctx, templ)
 	}
 	if err != nil {
+
 		return id, err
 	}
 	err = r.reader.Upsert(ctx, templ)
