@@ -25,7 +25,42 @@ func NewArticleHandle(l logger2.Loggerv1, svc service.ArticleService) *ArticleHa
 func (u *ArticleHandle) RegisterRoutes(server *gin.Engine) {
 	g := server.Group("/articles")
 	g.POST("/edit", u.Edit)
+	g.POST("/withdraw", u.Withdraw)
 	g.POST("/publish", u.Publish)
+}
+func (a *ArticleHandle) Withdraw(ctx *gin.Context) {
+	var req Req
+	if err := ctx.Bind(&req); err != nil {
+		return
+	}
+	c := ctx.MustGet("claim")
+	claim, ok := c.(*ijwt.Claim)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		a.l.Error("未发现用户的session信息")
+		return
+	}
+	err := a.svc.Withdraw(ctx, domain.Article{
+		Id: req.Id,
+		Author: domain.Author{
+			Id: claim.UserId,
+		},
+	})
+	if err != nil {
+		ctx.JSON(http.StatusOK, Result{
+			Code: 5,
+			Msg:  "系统错误",
+		})
+		a.l.Error("撤销帖子失败", logger2.Error(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, Result{
+		Msg: "ok",
+	})
+	return
 }
 func (a *ArticleHandle) Edit(ctx *gin.Context) {
 	var req Req

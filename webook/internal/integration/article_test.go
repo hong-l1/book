@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/hong-l1/project/webook/internal/domain"
 	"github.com/hong-l1/project/webook/internal/integration/startup"
 	"github.com/hong-l1/project/webook/internal/repository/dao/article"
 	ijwt "github.com/hong-l1/project/webook/internal/web/jwt"
@@ -51,7 +52,6 @@ func (suite *ArticleTestSuite) TestEdit() {
 		{
 			name: "帖子保存成功",
 			before: func(t *testing.T) {
-
 			},
 			after: func(t *testing.T) {
 				var art article.Article
@@ -66,6 +66,7 @@ func (suite *ArticleTestSuite) TestEdit() {
 					Title:    "我的标题",
 					Content:  "我的内容",
 					AuthorId: 123,
+					Status:   domain.ArticleStatusUnpublished.ToUint8(),
 				}, art)
 			},
 			art: Article{
@@ -88,6 +89,7 @@ func (suite *ArticleTestSuite) TestEdit() {
 					AuthorId: 123,
 					Ctime:    123,
 					Utime:    234,
+					Status:   domain.ArticleStatusUnpublished.ToUint8(),
 				}).Error
 				assert.NoError(t, err)
 			},
@@ -103,6 +105,7 @@ func (suite *ArticleTestSuite) TestEdit() {
 					Content:  "新的内容",
 					AuthorId: 123,
 					Ctime:    123,
+					Status:   domain.ArticleStatusPublished.ToUint8(),
 				}, art)
 			},
 			art: Article{
@@ -126,6 +129,7 @@ func (suite *ArticleTestSuite) TestEdit() {
 					AuthorId: 789,
 					Ctime:    123,
 					Utime:    234,
+					Status:   domain.ArticleStatusPublished.ToUint8(),
 				}).Error
 				assert.NoError(t, err)
 			},
@@ -140,6 +144,7 @@ func (suite *ArticleTestSuite) TestEdit() {
 					AuthorId: 789,
 					Ctime:    123,
 					Utime:    234,
+					Status:   domain.ArticleStatusPublished.ToUint8(),
 				}, art)
 			},
 			art: Article{

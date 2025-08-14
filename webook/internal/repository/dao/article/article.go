@@ -13,9 +13,30 @@ type ArticleDao interface {
 	UpdateById(ctx context.Context, art Article) error
 	Sync(ctx context.Context, art Article) (int64, error)
 	Upsert(ctx context.Context, art PublishArticleDAO) error
+	SyncStatus(ctx context.Context, articleId int64, AuthorId int64, status uint8) error
 }
 type GORMArticleDao struct {
 	db *gorm.DB
+}
+
+func (g *GORMArticleDao) SyncStatus(ctx context.Context, articleId int64, AuthorId int64, status uint8) error {
+	now := time.Now().UnixMilli()
+	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		res := tx.Model(&Article{}).Where("id = ? AND author_id = ?", articleId, AuthorId).Updates(map[string]interface{}{
+			"status": status,
+			"utime":  now,
+		})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected != 1 {
+			return fmt.Errorf("误操作非自己的文章 uid:%d,author_id:%d", articleId, AuthorId)
+		}
+		return tx.Model(&Article{}).Where("id = ?", articleId).Updates(map[string]interface{}{
+			"status": status,
+			"utime":  now,
+		}).Error
+	})
 }
 
 func (g *GORMArticleDao) Upsert(ctx context.Context, art PublishArticleDAO) error {
@@ -27,11 +48,11 @@ func (g *GORMArticleDao) Upsert(ctx context.Context, art PublishArticleDAO) erro
 			"title":   art.Title,
 			"content": art.Content,
 			"utime":   now,
+			"status":  art.Status,
 		}),
 	}).Create(&art).Error
 	return err
 }
-
 func (g *GORMArticleDao) Sync(ctx context.Context, art Article) (int64, error) {
 	var id = art.Id
 	err := g.db.Transaction(func(tx *gorm.DB) error {
@@ -49,7 +70,6 @@ func (g *GORMArticleDao) Sync(ctx context.Context, art Article) (int64, error) {
 	})
 	return id, err
 }
-
 func (g *GORMArticleDao) UpdateById(ctx context.Context, art Article) error {
 	now := time.Now().UnixMilli()
 	art.Utime = now
@@ -58,6 +78,7 @@ func (g *GORMArticleDao) UpdateById(ctx context.Context, art Article) error {
 		"title":   art.Title,
 		"content": art.Content,
 		"utime":   art.Utime,
+		"status":  art.Status,
 	})
 	if res.Error != nil {
 		return res.Error
@@ -88,6 +109,7 @@ type Article struct {
 	AuthorId int64  `gorm:"index"`
 	//Author  int64  `gorm:"index=aid_ctime"`
 	//Ctime   int64  `gorm:"index=aid_ctime"`
-	Ctime int64
-	Utime int64
+	Status uint8
+	Ctime  int64
+	Utime  int64
 }
