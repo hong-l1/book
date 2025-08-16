@@ -40,7 +40,12 @@ func InitWebServer() *gin.Engine {
 	)
 	return gin.Default()
 }
-func InitArticleHandle() *web.ArticleHandle {
-	wire.Build(InitDB, service.NewServiceArticle, web.NewArticleHandle, ioc.InitLogger, article.NewCacheArticle, article2.NewGORMArticleDao)
+
+//func InitArticleHandle() *web.ArticleHandle {
+//	wire.Build(InitDB, service.NewServiceArticle, web.NewArticleHandle, ioc.InitLogger, article.NewCacheArticle, article2.NewGORMArticleDao)
+//	return &web.ArticleHandle{}
+//}
+func InitArticleHandle(dao article2.ArticleDao) *web.ArticleHandle {
+	wire.Build(service.NewServiceArticle, web.NewArticleHandle, ioc.InitLogger, article.NewCacheArticle)
 	return &web.ArticleHandle{}
 }

@@ -13,20 +13,35 @@ type ArticleRepository interface {
 	//存储并同步
 	Syncv1(ctx context.Context, art domain.Article) (int64, error)
 	SyncStatus(ctx context.Context, articleId int64, AuthorId int64, Status domain.ArticleStatus) error
+	Sync(ctx context.Context, art domain.Article) (int64, error)
+	Syncv2(ctx context.Context, art domain.Article) (int64, error)
 }
 type CacheArticle struct {
-	dao    article.ArticleDao
-	reader article.ReaderDao
-	author article.AuthorDao
-	db     *gorm.DB
+	dao article.ArticleDao
+	//reader article.ReaderDao
+	//author article.AuthorDao
+	db *gorm.DB
 }
 
 func (r *CacheArticle) SyncStatus(ctx context.Context, articleId int64, AuthorId int64, Status domain.ArticleStatus) error {
 	return r.dao.SyncStatus(ctx, articleId, AuthorId, Status.ToUint8())
 }
-
 func (r *CacheArticle) Sync(ctx context.Context, art domain.Article) (int64, error) {
-	return r.dao.Sync(ctx, r.toEntity(art))
+	var (
+		id  = art.Id
+		err error
+	)
+	templ := r.toEntity(art)
+	if art.Id > 0 {
+		err = r.dao.UpdateById(ctx, templ)
+	} else {
+		id, err = r.dao.Insert(ctx, templ)
+	}
+	if err != nil {
+		return id, err
+	}
+	id, err = r.dao.Sync(ctx, templ)
+	return id, err
 }
 func (r *CacheArticle) Syncv2(ctx context.Context, art domain.Article) (int64, error) {
 	tx := r.db.WithContext(ctx).Begin()
@@ -55,22 +70,23 @@ func (r *CacheArticle) Syncv2(ctx context.Context, art domain.Article) (int64, e
 	return id, err
 }
 func (r *CacheArticle) Syncv1(ctx context.Context, art domain.Article) (int64, error) {
-	var (
-		id  = art.Id
-		err error
-	)
-	templ := r.toEntity(art)
-	if art.Id > 0 {
-		err = r.author.UpdateById(ctx, templ)
-	} else {
-		id, err = r.author.Insert(ctx, templ)
-	}
-	if err != nil {
-
-		return id, err
-	}
-	err = r.reader.Upsert(ctx, templ)
-	return id, err
+	//var (
+	//	id  = art.Id
+	//	err error
+	//)
+	//templ := r.toEntity(art)
+	//if art.Id > 0 {
+	//	err = r.author.UpdateById(ctx, templ)
+	//} else {
+	//	id, err = r.author.Insert(ctx, templ)
+	//}
+	//if err != nil {
+	//
+	//	return id, err
+	//}
+	//err = r.reader.Upsert(ctx, templ)
+	//return id, err
+	panic("implement me")
 }
 
 func (r *CacheArticle) Create(ctx context.Context, art domain.Article) (int64, error) {

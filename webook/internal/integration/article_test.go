@@ -32,7 +32,7 @@ func (suite *ArticleTestSuite) SetupSuite() {
 			UserId: 123,
 		})
 	})
-	artHal := startup.InitArticleHandle()
+	artHal := startup.InitArticleHandle(article.NewGORMArticleDao(suite.db))
 	artHal.RegisterRoutes(suite.server)
 }
 func (s *ArticleTestSuite) TearDownTest() {
@@ -182,6 +182,7 @@ func (suite *ArticleTestSuite) TestEdit() {
 		})
 	}
 }
+
 func TestArticle(t *testing.T) {
 	suite.Run(t, &ArticleTestSuite{})
 }

@@ -47,7 +47,7 @@ func (s *ServiceArticle) Save(ctx context.Context, article domain.Article) (int6
 }
 func (s *ServiceArticle) Publish(ctx context.Context, article domain.Article) (int64, error) {
 	article.Status = domain.ArticleStatusPublished
-	return s.repo.Syncv1(ctx, article)
+	return s.repo.Sync(ctx, article)
 }
 func (s *ServiceArticle) Publishv1(ctx context.Context, article domain.Article) (int64, error) {
 	var (

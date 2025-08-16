@@ -9,10 +9,10 @@ package startup
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/hong-l1/project/webook/internal/repository"
-	"github.com/hong-l1/project/webook/internal/repository/article"
+	article2 "github.com/hong-l1/project/webook/internal/repository/article"
 	"github.com/hong-l1/project/webook/internal/repository/cache"
 	"github.com/hong-l1/project/webook/internal/repository/dao"
-	article2 "github.com/hong-l1/project/webook/internal/repository/dao/article"
+	"github.com/hong-l1/project/webook/internal/repository/dao/article"
 	"github.com/hong-l1/project/webook/internal/service"
 	"github.com/hong-l1/project/webook/internal/web"
 	"github.com/hong-l1/project/webook/internal/web/jwt"
@@ -38,19 +38,21 @@ func InitWebServer() *gin.Engine {
 	userHandle := web.NewUserHandle(userService, codeService, handle)
 	wechatService := ioc.InitOauth2WechatService()
 	oAuth2WeChatHandle := web.NewOAuth2WeChatHandle(wechatService, userService, handle)
-	articleDao := article2.NewGORMArticleDao(db)
-	articleRepository := article.NewCacheArticle(articleDao)
+	articleDao := article.NewGORMArticleDao(db)
+	articleRepository := article2.NewCacheArticle(articleDao)
 	articleService := service.NewServiceArticle(articleRepository)
 	articleHandle := web.NewArticleHandle(loggerv1, articleService)
 	engine := ioc.InitGin(v, userHandle, oAuth2WeChatHandle, articleHandle)
 	return engine
 }
 
-func InitArticleHandle() *web.ArticleHandle {
+//	func InitArticleHandle() *web.ArticleHandle {
+//		wire.Build(InitDB, service.NewServiceArticle, web.NewArticleHandle, ioc.InitLogger, article.NewCacheArticle, article2.NewGORMArticleDao)
+//		return &web.ArticleHandle{}
+//	}
+func InitArticleHandle(dao2 article.ArticleDao) *web.ArticleHandle {
 	loggerv1 := ioc.InitLogger()
-	db := InitDB()
-	articleDao := article2.NewGORMArticleDao(db)
-	articleRepository := article.NewCacheArticle(articleDao)
+	articleRepository := article2.NewCacheArticle(dao2)
 	articleService := service.NewServiceArticle(articleRepository)
 	articleHandle := web.NewArticleHandle(loggerv1, articleService)
 	return articleHandle
