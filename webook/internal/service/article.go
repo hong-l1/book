@@ -12,12 +12,17 @@ type ArticleService interface {
 	Publish(ctx context.Context, article domain.Article) (int64, error)
 	Publishv1(ctx context.Context, article domain.Article) (int64, error)
 	Withdraw(ctx context.Context, article domain.Article) error
+	List(ctx context.Context, offset int, limit int, id int64) ([]domain.Article, error)
 }
 type ServiceArticle struct {
 	repo   article.ArticleRepository
 	author article.ArticleAuthorRepository
 	reader article.ArticleReaderRepository
 	l      logger.Loggerv1
+}
+
+func (s *ServiceArticle) List(ctx context.Context, offset int, limit int, id int64) ([]domain.Article, error) {
+	return s.repo.List(ctx, offset, limit, id)
 }
 
 func (s *ServiceArticle) Withdraw(ctx context.Context, article domain.Article) error {

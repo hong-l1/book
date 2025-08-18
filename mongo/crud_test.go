@@ -38,7 +38,7 @@ func TestMongo(t *testing.T) {
 		},
 	}
 	opts := options.Client().
-		ApplyURI("mongodb://root:12345@localhost:27017").
+		ApplyURI("mongodb://localhost:27017/book").
 		SetMonitor(monitor)
 	client, err := mongo.Connect(ctx, opts)
 	assert.NoError(t, err)

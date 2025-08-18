@@ -53,7 +53,6 @@ func (m *MongoDBDAO) UpdateById(ctx context.Context, art Article) error {
 	}
 	return nil
 }
-
 func (m *MongoDBDAO) Sync(ctx context.Context, art Article) (int64, error) {
 	var (
 		id  = art.Id
@@ -74,12 +73,10 @@ func (m *MongoDBDAO) Sync(ctx context.Context, art Article) (int64, error) {
 	_, err = m.Linecol.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true))
 	return id, err
 }
-
 func (m *MongoDBDAO) Upsert(ctx context.Context, art PublishArticleDAO) error {
 	//TODO implement me
 	panic("implement me")
 }
-
 func (m *MongoDBDAO) SyncStatus(ctx context.Context, articleId int64, AuthorId int64, status uint8) error {
 	//TODO implement me
 	panic("implement me")

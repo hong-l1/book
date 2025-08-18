@@ -1,12 +1,15 @@
 package web
 
 import (
+	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
 	"github.com/hong-l1/project/webook/internal/domain"
 	logger2 "github.com/hong-l1/project/webook/internal/pkg/logger"
+	"github.com/hong-l1/project/webook/internal/pkg/wrapper"
 	"github.com/hong-l1/project/webook/internal/service"
 	ijwt "github.com/hong-l1/project/webook/internal/web/jwt"
 	"net/http"
+	"time"
 )
 
 var _ Handler = (*ArticleHandle)(nil)
@@ -27,6 +30,8 @@ func (u *ArticleHandle) RegisterRoutes(server *gin.Engine) {
 	g.POST("/edit", u.Edit)
 	g.POST("/withdraw", u.Withdraw)
 	g.POST("/publish", u.Publish)
+	g.POST("/list", wrapper.WrapBodyAndToken[ListReq, ijwt.Claim](u.List))
+	g.POST("/detail",wrapper.)
 }
 func (a *ArticleHandle) Withdraw(ctx *gin.Context) {
 	var req Req
@@ -123,20 +128,22 @@ func (a *ArticleHandle) Publish(ctx *gin.Context) {
 	})
 	return
 }
-func (req Req) todomain(userid int64) domain.Article {
-	return domain.Article{
-		Id:      req.Id,
-		Title:   req.Title,
-		Content: req.Content,
-		Author: domain.Author{
-			Id: userid,
-		},
-	}
-}
 
-type Req struct {
-	Id      int64  `json:"id"`
-	Title   string `json:"title"`
-	Content string `json:"content"`
-	id      int64
+func (u *ArticleHandle) List(ctx *gin.Context, req ListReq, uc ijwt.Claim) (wrapper.Result, error) {
+	res, err := u.svc.List(ctx, req.Offset, req.Limit, uc.UserId)
+	if err != nil {
+		return Result{Msg: "系统错误", Code: 5}, nil
+	}
+	return Result{
+		Data: slice.Map[domain.Article, ArticleVO](res, func(idx int, src domain.Article) ArticleVO {
+			return ArticleVO{
+				Id:       src.Id,
+				Title:    src.Title,
+				Abstract: src.Abstract(),
+				Status:   src.Status.ToUint8(),
+				Ctime:    src.Ctime.Format(time.DateTime),
+				Utime:    src.Utime.Format(time.DateTime),
+			}
+		}),
+	}, nil
 }

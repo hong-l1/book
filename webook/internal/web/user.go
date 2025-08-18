@@ -8,6 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/hong-l1/project/webook/internal/domain"
+	"github.com/hong-l1/project/webook/internal/pkg/logger"
+	"github.com/hong-l1/project/webook/internal/pkg/wrapper"
 	"github.com/hong-l1/project/webook/internal/service"
 	ijwt "github.com/hong-l1/project/webook/internal/web/jwt"
 	"github.com/redis/go-redis/v9"
@@ -25,11 +27,12 @@ type UserHandle struct {
 	phoneNumberExp   *regexp.Regexp
 	ijwt.Handle
 	cmd redis.Cmdable
+	l   logger.Loggerv1
 }
 
 const biz = "login"
 
-func NewUserHandle(svc service.UserService, codesvc service.CodeService, ijwthandle ijwt.Handle) *UserHandle {
+func NewUserHandle(svc service.UserService, codesvc service.CodeService, ijwthandle ijwt.Handle, l logger.Loggerv1) *UserHandle {
 	const (
 		emailRegexPattern    = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
 		passwordRegexPattern = "^(?=.*[A-Za-z])(?=.*\\d).{8,}$"
@@ -42,13 +45,14 @@ func NewUserHandle(svc service.UserService, codesvc service.CodeService, ijwthan
 		phoneNumberExp:   regexp.MustCompile(phoneNumberPattern, regexp.None),
 		codesvc:          codesvc,
 		Handle:           ijwthandle,
+		l:                l,
 	}
 }
 func (u *UserHandle) RegisterUsersRoutes(server *gin.Engine) {
 	ug := server.Group("users")
 	ug.POST("/signup", u.SignUp)
 	//ug.POST("/login", u.LogIn)
-	ug.POST("/login", u.LogInJwt)
+	ug.POST("/login", wrapper.Wrapper[LohInReq](u.LogInJwt, u.l.With(logger.String("method", "LoginJWt"))))
 	ug.POST("/edit", u.Edit)
 	ug.POST("/logout", u.Logout)
 	//ug.GET("/profile", u.Profile)
@@ -235,36 +239,28 @@ func (u *UserHandle) LogIn(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "登录成功")
 	return
 }
-func (u *UserHandle) LogInJwt(ctx *gin.Context) {
-	type LohInReq struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	var req LohInReq
-	err := ctx.Bind(&req)
-	if err != nil {
-		ctx.String(http.StatusOK, "系统异常")
-		return
-	}
+
+type LohInReq struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+func (u *UserHandle) LogInJwt(ctx *gin.Context, req LohInReq) (Result, error) {
 	user, err := u.svc.LogIn(ctx, domain.User{
 		Email:    req.Email,
 		Password: req.Password,
 	})
 	if errors.Is(err, service.ErrInvalidUserOrPassword) {
-		ctx.String(http.StatusOK, "账号或密码不对")
-		return
+		return Result{Msg: "账号或密码不对", Code: 4}, fmt.Errorf("账号或密码不对 %w", err)
 	}
 	if err != nil {
-		ctx.String(http.StatusOK, "系统错误")
-		return
+		return Result{Msg: "系统错误", Code: 5}, fmt.Errorf("系统错误 %w", err)
 	}
 	//创建token结构体
 	if err := u.SetLogintoken(ctx, user.Id); err != nil {
-		ctx.String(http.StatusOK, "系统错误")
-		return
+		return Result{Msg: "系统错误", Code: 5}, fmt.Errorf("系统错误 %w", err)
 	}
-	ctx.String(http.StatusOK, "登录成功")
-	return
+	return Result{Msg: "登录成功", Code: 5}, nil
 }
 func (u *UserHandle) RefreshToken(ctx *gin.Context) {
 	refreshtoken := u.ExtractToken(ctx)
