@@ -6,7 +6,6 @@ type Req struct {
 	Id      int64  `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`
-	id      int64
 }
 type ListReq struct {
 	Offset int `json:"offset"`
@@ -25,12 +24,13 @@ func (req Req) todomain(userid int64) domain.Article {
 }
 
 type ArticleVO struct {
-	Id       int64  `json:"id"`
-	Title    string `json:"title"`
-	Abstract string `json:"abstract"`
-	Content  string `json:"content"`
-	Status   uint8  `json:"status"`
-	Author   string `json:"author"`
-	Ctime    string `json:"ctime"`
-	Utime    string `json:"utime"`
+	Id         int64  `json:"id"`
+	Title      string `json:"title"`
+	Abstract   string `json:"abstract"`
+	Content    string `json:"content"`
+	Status     uint8  `json:"status"`
+	AuthorId   int64  `json:"authorId"`
+	AuthorName string `json:"authorName"`
+	Ctime      string `json:"ctime"`
+	Utime      string `json:"utime"`
 }

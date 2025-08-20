@@ -5,6 +5,7 @@ import (
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/hong-l1/project/webook/internal/domain"
 	"github.com/hong-l1/project/webook/internal/pkg/logger"
+	"github.com/hong-l1/project/webook/internal/repository"
 	"github.com/hong-l1/project/webook/internal/repository/cache"
 	"github.com/hong-l1/project/webook/internal/repository/dao/article"
 	"gorm.io/gorm"
@@ -14,27 +15,64 @@ import (
 type ArticleRepository interface {
 	Create(ctx context.Context, art domain.Article) (int64, error)
 	Update(ctx context.Context, art domain.Article) error
-	//存储并同步
+	//Syncv1存储并同步
 	Syncv1(ctx context.Context, art domain.Article) (int64, error)
 	SyncStatus(ctx context.Context, articleId int64, AuthorId int64, Status domain.ArticleStatus) error
 	Sync(ctx context.Context, art domain.Article) (int64, error)
 	Syncv2(ctx context.Context, art domain.Article) (int64, error)
 	List(ctx context.Context, offset int, limit int, id int64) ([]domain.Article, error)
+	GetById(ctx context.Context, id int64) (domain.Article, error)
+	PreCache(ctx context.Context, data []domain.Article)
+	GetPublishedById(ctx context.Context, artid int64) (domain.Article, error)
 }
 type CacheArticle struct {
 	dao article.ArticleDao
 	//reader article.ReaderDao
 	//author article.AuthorDao
-	db    *gorm.DB
-	cache cache.ArticleCache
-	l     logger.Loggerv1
+	userrepo repository.UserRepository
+	db       *gorm.DB
+	cache    cache.ArticleCache
+	l        logger.Loggerv1
+}
+
+func (r *CacheArticle) GetPublishedById(ctx context.Context, artid int64) (domain.Article, error) {
+	art, err := r.dao.GetById(ctx, artid)
+	if err != nil {
+		return domain.Article{}, err
+	}
+	user, err := r.userrepo.FindById(ctx, domain.User{Id: artid})
+	if err != nil {
+		return domain.Article{}, err
+	}
+	res := domain.Article{
+		Id:      art.Id,
+		Title:   art.Title,
+		Content: art.Content,
+		Author: domain.Author{
+			Id:   user.Id,
+			Name: user.Nickname,
+		},
+		Ctime: time.UnixMilli(art.Ctime),
+		Utime: time.UnixMilli(art.Utime),
+	}
+	return res, nil
+}
+
+func (r *CacheArticle) GetById(ctx context.Context, id int64) (domain.Article, error) {
+	data, err := r.dao.GetById(ctx, id)
+	if err != nil {
+		return domain.Article{}, err
+	}
+	return r.todomain(data), nil
 }
 
 func (r *CacheArticle) List(ctx context.Context, offset int, limit int, id int64) ([]domain.Article, error) {
 	if offset == 0 && limit <= 100 {
 		data, err := r.cache.GetFirstPage(ctx, id)
 		if err == nil {
-			//data[:limit]
+			go func() {
+				r.PreCache(ctx, data)
+			}()
 			return data, nil
 		}
 	}
@@ -48,10 +86,10 @@ func (r *CacheArticle) List(ctx context.Context, offset int, limit int, id int64
 	go func() {
 		err := r.cache.SetFirstPage(ctx, id, data)
 		r.l.Error("缓存回写失败", logger.Error(err))
+		r.PreCache(ctx, data)
 	}()
 	return data, nil
 }
-
 func (r *CacheArticle) SyncStatus(ctx context.Context, articleId int64, AuthorId int64, Status domain.ArticleStatus) error {
 	return r.dao.SyncStatus(ctx, articleId, AuthorId, Status.ToUint8())
 }
@@ -117,7 +155,6 @@ func (r *CacheArticle) Syncv1(ctx context.Context, art domain.Article) (int64, e
 	//return id, err
 	panic("implement me")
 }
-
 func (r *CacheArticle) Create(ctx context.Context, art domain.Article) (int64, error) {
 	defer func() {
 		//情况缓存
@@ -153,6 +190,15 @@ func (r *CacheArticle) todomain(art article.Article) domain.Article {
 		},
 		Ctime: time.UnixMilli(art.Ctime),
 		Utime: time.UnixMilli(art.Utime),
+	}
+}
+
+func (r *CacheArticle) PreCache(ctx context.Context, data []domain.Article) {
+	if len(data) > 0 && len(data[0].Content) < 1024*1024 {
+		err := r.cache.Set(ctx, data[0], data[0].Id)
+		if err != nil {
+			r.l.Error("预加载缓存失败", logger.Error(err))
+		}
 	}
 }
 func NewCacheArticle(dao article.ArticleDao, db *gorm.DB, cache cache.ArticleCache, l logger.Loggerv1) ArticleRepository {

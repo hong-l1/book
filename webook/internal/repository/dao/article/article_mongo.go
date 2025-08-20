@@ -20,6 +20,16 @@ type MongoDBDAO struct {
 	Node    *snowflake.Node
 }
 
+func (m *MongoDBDAO) GetbyAuthor(ctx context.Context, id int64, offset int, limit int) ([]Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MongoDBDAO) GetById(ctx context.Context, id int64) (Article, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m *MongoDBDAO) Insert(ctx context.Context, art Article) (int64, error) {
 	now := time.Now().UnixMilli()
 	art.Ctime = now

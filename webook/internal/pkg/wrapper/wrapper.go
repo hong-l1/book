@@ -47,6 +47,23 @@ func WrapBodyAndToken[T any, C ijwt.Claim](fn func(ctx *gin.Context, req T, uc C
 		ctx.JSON(http.StatusOK, result)
 	}
 }
+func WrapToken[C ijwt.Claim](fn func(ctx *gin.Context, uc C) (Result, error)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		val, ok := ctx.Get("claim")
+		if !ok {
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		c := val.(*C)
+		res, err := fn(ctx, *c)
+		if err != nil {
+			l.Error("处理业务逻辑出错",
+				logger.Error(err),
+				logger.String("route", ctx.FullPath()))
+		}
+		ctx.JSON(http.StatusOK, res)
+	}
+}
 
 type Result struct {
 	Code int    `json:"code"`

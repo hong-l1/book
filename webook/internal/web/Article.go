@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"github.com/ecodeclub/ekit/slice"
 	"github.com/gin-gonic/gin"
 	"github.com/hong-l1/project/webook/internal/domain"
@@ -9,20 +10,25 @@ import (
 	"github.com/hong-l1/project/webook/internal/service"
 	ijwt "github.com/hong-l1/project/webook/internal/web/jwt"
 	"net/http"
+	"strconv"
 	"time"
 )
 
 var _ Handler = (*ArticleHandle)(nil)
 
 type ArticleHandle struct {
-	svc service.ArticleService
-	l   logger2.Loggerv1
+	svc     service.ArticleService
+	l       logger2.Loggerv1
+	intrsvc service.InteractiveService
+	biz     string
 }
 
-func NewArticleHandle(l logger2.Loggerv1, svc service.ArticleService) *ArticleHandle {
+func NewArticleHandle(l logger2.Loggerv1, svc service.ArticleService, intrsvc service.InteractiveService, biz string) *ArticleHandle {
 	return &ArticleHandle{
-		l:   l,
-		svc: svc,
+		l:       l,
+		svc:     svc,
+		intrsvc: intrsvc,
+		biz:     biz,
 	}
 }
 func (u *ArticleHandle) RegisterRoutes(server *gin.Engine) {
@@ -31,7 +37,9 @@ func (u *ArticleHandle) RegisterRoutes(server *gin.Engine) {
 	g.POST("/withdraw", u.Withdraw)
 	g.POST("/publish", u.Publish)
 	g.POST("/list", wrapper.WrapBodyAndToken[ListReq, ijwt.Claim](u.List))
-	g.POST("/detail",wrapper.)
+	g.GET("/detail/:id", wrapper.WrapToken[ijwt.Claim](u.Detail))
+	pub := g.Group("/pub")
+	pub.GET("/:id", wrapper.WrapToken[ijwt.Claim](u.PubDetail))
 }
 func (a *ArticleHandle) Withdraw(ctx *gin.Context) {
 	var req Req
@@ -128,7 +136,6 @@ func (a *ArticleHandle) Publish(ctx *gin.Context) {
 	})
 	return
 }
-
 func (u *ArticleHandle) List(ctx *gin.Context, req ListReq, uc ijwt.Claim) (wrapper.Result, error) {
 	res, err := u.svc.List(ctx, req.Offset, req.Limit, uc.UserId)
 	if err != nil {
@@ -145,5 +152,75 @@ func (u *ArticleHandle) List(ctx *gin.Context, req ListReq, uc ijwt.Claim) (wrap
 				Utime:    src.Utime.Format(time.DateTime),
 			}
 		}),
+	}, nil
+}
+func (u *ArticleHandle) Detail(ctx *gin.Context, uc ijwt.Claim) (wrapper.Result, error) {
+	idstr := ctx.Param("id")
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err != nil {
+		return Result{
+			Code: 4,
+			Msg:  "参数错误",
+		}, err
+	}
+	art, err := u.svc.GetById(ctx, id)
+	if err != nil {
+		return Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	if art.Author.Id != uc.UserId {
+		return Result{
+			Code: 4,
+			Msg:  "输入错误",
+		}, fmt.Errorf("非法访问文章，创作者 ID 不匹配 %d", id)
+	}
+	return Result{
+		Data: ArticleVO{
+			Id:      art.Id,
+			Title:   art.Title,
+			Content: art.Content,
+			Ctime:   art.Ctime.Format(time.DateTime),
+			Utime:   art.Utime.Format(time.DateTime),
+			Status:  art.Status.ToUint8(),
+		},
+	}, nil
+}
+func (u *ArticleHandle) PubDetail(ctx *gin.Context, uc ijwt.Claim) (Result, error) {
+	idstr := ctx.Param("id")
+	id, err := strconv.ParseInt(idstr, 10, 64)
+	if err != nil {
+		return Result{
+			Code: 4,
+			Msg:  "参数错误",
+		}, err
+	}
+	art, err := u.svc.GetPublishedById(ctx, id)
+	if err != nil {
+		return Result{
+			Msg:  "系统错误",
+			Code: 5,
+		}, err
+	}
+	go func() {
+		er := u.intrsvc.IncrReadCnt(ctx, u.biz, art.Id)
+		if er != nil {
+			u.l.Error("增加阅读计数失败",
+				logger2.Int64("article id", art.Id),
+				logger2.Error(er))
+		}
+	}()
+	return Result{
+		Data: ArticleVO{
+			Id:         art.Id,
+			Title:      art.Title,
+			Content:    art.Content,
+			Ctime:      art.Ctime.Format(time.DateTime),
+			Utime:      art.Utime.Format(time.DateTime),
+			Status:     art.Status.ToUint8(),
+			AuthorId:   art.Author.Id,
+			AuthorName: art.Author.Name,
+		},
 	}, nil
 }
