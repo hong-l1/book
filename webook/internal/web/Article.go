@@ -40,6 +40,8 @@ func (u *ArticleHandle) RegisterRoutes(server *gin.Engine) {
 	g.GET("/detail/:id", wrapper.WrapToken[ijwt.Claim](u.Detail))
 	pub := g.Group("/pub")
 	pub.GET("/:id", wrapper.WrapToken[ijwt.Claim](u.PubDetail))
+	pub.POST("/like", wrapper.WrapBodyAndToken[LikeReq, ijwt.Claim](u.Like))
+	pub.POST("/collect", wrapper.WrapBodyAndToken[CollectReq, ijwt.Claim](u.Collect))
 }
 func (a *ArticleHandle) Withdraw(ctx *gin.Context) {
 	var req Req
@@ -223,4 +225,24 @@ func (u *ArticleHandle) PubDetail(ctx *gin.Context, uc ijwt.Claim) (Result, erro
 			AuthorName: art.Author.Name,
 		},
 	}, nil
+}
+
+func (u *ArticleHandle) Like(ctx *gin.Context, req LikeReq, uc ijwt.Claim) (Result, error) {
+	var err error
+	if req.Like {
+		err = u.intrsvc.Like(ctx, u.biz, req.Id, uc.UserId)
+	} else {
+		err = u.intrsvc.CancelLike(ctx, u.biz, req.Id, uc.UserId)
+	}
+	if err != nil {
+		return Result{
+			Code: 5,
+			Msg:  "系统错误",
+		}, err
+	}
+	return Result{Msg: "OK"}, nil
+}
+
+func (u *ArticleHandle) Collect(context *gin.Context, req CollectReq, uc ijwt.Claim) (Result, error) {
+	panic("implement me")
 }

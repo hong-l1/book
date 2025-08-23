@@ -11,6 +11,13 @@ type ListReq struct {
 	Offset int `json:"offset"`
 	Limit  int `json:"limit"`
 }
+type LikeReq struct {
+	Id   int64
+	Like bool `json:"like"`
+}
+type CollectReq struct {
+	id int64
+}
 
 func (req Req) todomain(userid int64) domain.Article {
 	return domain.Article{
