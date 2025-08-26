@@ -9,6 +9,7 @@ import (
 	"github.com/hong-l1/project/webook/internal/pkg/wrapper"
 	"github.com/hong-l1/project/webook/internal/service"
 	ijwt "github.com/hong-l1/project/webook/internal/web/jwt"
+	"golang.org/x/sync/errgroup"
 	"net/http"
 	"strconv"
 	"time"
@@ -198,7 +199,18 @@ func (u *ArticleHandle) PubDetail(ctx *gin.Context, uc ijwt.Claim) (Result, erro
 			Msg:  "参数错误",
 		}, err
 	}
-	art, err := u.svc.GetPublishedById(ctx, id)
+	var art domain.Article
+	var eg errgroup.Group
+	eg.Go(func() error {
+		art, err = u.svc.GetPublishedById(ctx, id)
+		return err
+	})
+	var inter domain.Interactive
+	eg.Go(func() error {
+		inter, err = u.intrsvc.Get(ctx, u.biz, id, uc.UserId)
+		return err
+	})
+	err = eg.Wait()
 	if err != nil {
 		return Result{
 			Msg:  "系统错误",
@@ -223,10 +235,14 @@ func (u *ArticleHandle) PubDetail(ctx *gin.Context, uc ijwt.Claim) (Result, erro
 			Status:     art.Status.ToUint8(),
 			AuthorId:   art.Author.Id,
 			AuthorName: art.Author.Name,
+			ReadCnt:    inter.ReadCnt,
+			LikeCnt:    inter.LikeCnt,
+			CollectCnt: inter.CollectCnt,
+			Liked:      inter.Liked,
+			Collected:  inter.Collected,
 		},
 	}, nil
 }
-
 func (u *ArticleHandle) Like(ctx *gin.Context, req LikeReq, uc ijwt.Claim) (Result, error) {
 	var err error
 	if req.Like {
@@ -242,7 +258,6 @@ func (u *ArticleHandle) Like(ctx *gin.Context, req LikeReq, uc ijwt.Claim) (Resu
 	}
 	return Result{Msg: "OK"}, nil
 }
-
 func (u *ArticleHandle) Collect(context *gin.Context, req CollectReq, uc ijwt.Claim) (Result, error) {
 	panic("implement me")
 }

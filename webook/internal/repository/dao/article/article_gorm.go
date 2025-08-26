@@ -55,7 +55,7 @@ func (g *GORMArticleDao) SyncStatus(ctx context.Context, articleId int64, Author
 		if res.RowsAffected != 1 {
 			return fmt.Errorf("误操作非自己的文章 uid:%d,author_id:%d", articleId, AuthorId)
 		}
-		return tx.Model(&Article{}).Where("id = ?", articleId).Updates(map[string]interface{}{
+		return tx.Model(&PublishArticleDAO{}).Where("id = ?", articleId).Updates(map[string]interface{}{
 			"status": status,
 			"utime":  now,
 		}).Error
@@ -66,7 +66,7 @@ func (g *GORMArticleDao) Upsert(ctx context.Context, art PublishArticleDAO) erro
 	now := time.Now().UnixMilli()
 	art.Ctime = now
 	art.Utime = now
-	err := g.db.Clauses(clause.OnConflict{
+	err := g.db.WithContext(ctx).Clauses(clause.OnConflict{
 		DoUpdates: clause.Assignments(map[string]interface{}{
 			"title":   art.Title,
 			"content": art.Content,

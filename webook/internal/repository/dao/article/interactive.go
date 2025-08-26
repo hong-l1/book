@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+var ErrRecordNotFound = gorm.ErrRecordNotFound
+
 type Interactive struct {
 	ID         int64  `gorm:"primaryKey,autoIncrement"`
 	BizId      int64  `gorm:"uniqueIndex:biz_id_type"`
@@ -41,9 +43,28 @@ type InteractiveDAO interface {
 	InsertLikeInfo(ctx context.Context, biz string, bizid int64, uid int64) error
 	DeleteLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) error
 	InsertCollectionBiz(ctx context.Context, ob UserCollectionBiz) error
+	GetLikeInfo(ctx context.Context, biz string, artid int64, uid int64) (interface{}, interface{})
+	GetCollectInfo(ctx context.Context, biz string, artid int64, uid int64) (interface{}, interface{})
+	Get(ctx context.Context, biz string, artid int64) (Interactive, error)
 }
 type GORMInteractiveDAO struct {
 	db *gorm.DB
+}
+
+func (g *GORMInteractiveDAO) GetLikeInfo(ctx context.Context, biz string, artid int64, uid int64) (interface{}, interface{}) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GORMInteractiveDAO) GetCollectInfo(ctx context.Context, biz string, artid int64, uid int64) (interface{}, interface{}) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GORMInteractiveDAO) Get(ctx context.Context, biz string, artid int64) (Interactive, error) {
+	var result Interactive
+	err := g.db.WithContext(ctx).Where("biz=? and article_id=?", biz, artid).First(&result).Error
+	return result, err
 }
 
 func (g *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, ob UserCollectionBiz) error {
@@ -57,8 +78,8 @@ func (g *GORMInteractiveDAO) InsertCollectionBiz(ctx context.Context, ob UserCol
 		}
 		return tx.Clauses(clause.OnConflict{
 			DoUpdates: clause.Assignments(map[string]interface{}{
-				"utime":      now,
-				"Collectcnt": gorm.Expr("CollectCnt + ?", 1),
+				"utime":       now,
+				"Collect_cnt": gorm.Expr("Collect_Cnt + ?", 1),
 			}),
 		}).Create(&Interactive{
 			Biz:        ob.Biz,
@@ -108,7 +129,7 @@ func (g *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, biz
 		}
 		return tx.Clauses(clause.OnConflict{
 			DoUpdates: clause.Assignments(map[string]interface{}{
-				"read_cnt": gorm.Expr("like_cnt + ?", 1),
+				"like_cnt": gorm.Expr("like_cnt + ?", 1),
 				"utime":    time.Now().UnixMilli(),
 			}),
 		}).Create(&Interactive{
@@ -119,7 +140,6 @@ func (g *GORMInteractiveDAO) InsertLikeInfo(ctx context.Context, biz string, biz
 			Utime:   now,
 		}).Error
 	})
-
 }
 func NewGORMInteractiveDAO(db *gorm.DB) InteractiveDAO {
 	return &GORMInteractiveDAO{db: db}
