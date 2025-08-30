@@ -7,6 +7,7 @@ import (
 	"github.com/hong-l1/project/webook/internal/domain"
 	"github.com/redis/go-redis/v9"
 	"strconv"
+	"time"
 )
 
 //go:embed Lua/interactive_incr.lua
@@ -29,7 +30,12 @@ type RedisInteractiveCache struct {
 }
 
 func (r *RedisInteractiveCache) Set(ctx context.Context, biz string, bizId int64, inter domain.Interactive) error {
-	panic("implement me")
+	key := r.key(biz, bizId)
+	err := r.client.HSet(ctx, key, fieldReadCnt, inter.ReadCnt, fieldLikeCnt, inter.LikeCnt, fieldCollectCnt, inter.CollectCnt).Err()
+	if err != nil {
+		return err
+	}
+	return r.client.Expire(ctx, key, time.Minute*15).Err()
 }
 
 func (r *RedisInteractiveCache) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {

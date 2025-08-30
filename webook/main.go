@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/fsnotify/fsnotify"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	"go.uber.org/zap"
+	"net/http"
 )
 
 func main() {
@@ -16,9 +18,10 @@ func main() {
 	//setting := viper.AllSettings()
 	//fmt.Println(setting)
 	Initviper11()
-	initLogger()
-	server := InitWebServer()
-	server.Run(":8080")
+	//initLogger()
+	//app := InitWebServer()
+	//
+	//	Server.Run(":8080")
 }
 func initViper() {
 	viper.SetDefault("db.mysql.dsn", "root:123456@tcp(localhost:6380)/webook?charset=utf8mb4&parseTime=True&loc=Local")
@@ -74,4 +77,10 @@ func initLogger() {
 		panic(err)
 	}
 	zap.ReplaceGlobals(logger)
+}
+func InitPrometheus() {
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":8081", nil)
+	}()
 }

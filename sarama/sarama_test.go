@@ -23,6 +23,7 @@ func TestSyncProducer(t *testing.T) {
 func TestASyncProducer(t *testing.T) {
 	cfg := sarama.NewConfig()
 	cfg.Producer.Return.Errors = true
+	cfg.Producer.Return.Errors = true
 	producer, err := sarama.NewAsyncProducer(addres, cfg)
 	assert.NoError(t, err)
 	msgch := producer.Input()

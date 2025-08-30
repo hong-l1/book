@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"github.com/hong-l1/project/webook/internal/domain"
+	event "github.com/hong-l1/project/webook/internal/events/article"
 	"github.com/hong-l1/project/webook/internal/pkg/logger"
 	"github.com/hong-l1/project/webook/internal/repository/article"
 )
@@ -14,17 +15,33 @@ type ArticleService interface {
 	Withdraw(ctx context.Context, article domain.Article) error
 	List(ctx context.Context, offset int, limit int, id int64) ([]domain.Article, error)
 	GetById(ctx context.Context, id int64) (domain.Article, error)
-	GetPublishedById(ctx context.Context, artid int64) (domain.Article, error)
+	GetPublishedById(ctx context.Context, artid, uid int64) (domain.Article, error)
 }
 type ServiceArticle struct {
-	repo   article.ArticleRepository
-	author article.ArticleAuthorRepository
-	reader article.ArticleReaderRepository
-	l      logger.Loggerv1
+	repo     article.ArticleRepository
+	author   article.ArticleAuthorRepository
+	reader   article.ArticleReaderRepository
+	l        logger.Loggerv1
+	producer event.Producer
 }
 
-func (s *ServiceArticle) GetPublishedById(ctx context.Context, artid int64) (domain.Article, error) {
-	return s.repo.GetPublishedById(ctx, artid)
+func (s *ServiceArticle) GetPublishedById(ctx context.Context, artid, uid int64) (domain.Article, error) {
+	art, err := s.repo.GetPublishedById(ctx, artid)
+	if err == nil {
+		go func() {
+			er := s.producer.ProducerReadEvent(event.ReadEvent{
+				Uid: uid,
+				Aid: artid,
+			})
+			if er != nil {
+				s.l.Error("发送 ReadEvent 失败",
+					logger.Int64("aid", artid),
+					logger.Int64("uid", uid),
+					logger.Error(err))
+			}
+		}()
+	}
+	return art, err
 }
 
 func (s *ServiceArticle) GetById(ctx context.Context, id int64) (domain.Article, error) {
@@ -45,11 +62,12 @@ func NewServiceArticle(repo article.ArticleRepository) ArticleService {
 	}
 }
 func NewServiceArticlev1(author article.ArticleAuthorRepository,
-	reader article.ArticleReaderRepository, l logger.Loggerv1) ArticleService {
+	reader article.ArticleReaderRepository, l logger.Loggerv1, producer event.Producer) ArticleService {
 	return &ServiceArticle{
-		author: author,
-		reader: reader,
-		l:      l,
+		author:   author,
+		reader:   reader,
+		l:        l,
+		producer: producer,
 	}
 }
 func (s *ServiceArticle) Save(ctx context.Context, article domain.Article) (int64, error) {

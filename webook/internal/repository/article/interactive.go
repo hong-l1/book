@@ -10,12 +10,13 @@ import (
 
 type InteractiveRepository interface {
 	IncrReadCnt(ctx context.Context, biz string, id int64) error
+	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
 	IncrLike(ctx context.Context, biz string, id int64, uid int64) error
 	DecrLike(ctx context.Context, biz string, bizId int64, uid int64) error
 	AddCollectItem(ctx context.Context, biz string, bizId int64, cid int64, uid int64) error
-	Get(ctx context.Context, biz string, artid int64) (domain.Interactive, error)
-	Liked(ctx context.Context, biz string, artid int64, uid int64) (bool, error)
-	Collected(ctx context.Context, biz string, artid int64, uid int64) (bool, error)
+	Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error)
+	Liked(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
+	Collected(ctx context.Context, biz string, bizId int64, uid int64) (bool, error)
 }
 type CachedInteractiveRepository struct {
 	dao   article.InteractiveDAO
@@ -23,28 +24,32 @@ type CachedInteractiveRepository struct {
 	l     logger2.Loggerv1
 }
 
-func (r *CachedInteractiveRepository) Get(ctx context.Context, biz string, artid int64) (domain.Interactive, error) {
-	inter, err := r.cache.Get(ctx, biz, artid)
+func (r *CachedInteractiveRepository) BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error {
+	err := r.dao.BatchIncrReadCnt(ctx, bizs, ids)
+}
+
+func (r *CachedInteractiveRepository) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {
+	inter, err := r.cache.Get(ctx, biz, bizId)
 	if err == nil {
 		return inter, nil
 	}
-	daointer, err := r.dao.Get(ctx, biz, artid)
+	daointer, err := r.dao.Get(ctx, biz, bizId)
 	if err != nil {
 		return domain.Interactive{}, err
 	}
 	inter = r.toDomain(daointer)
 	go func() {
-		er := r.cache.Set(ctx, biz, artid, inter)
+		er := r.cache.Set(ctx, biz, bizId, inter)
 		r.l.Error("回写缓存失败",
 			logger2.String("biz", biz),
-			logger2.Int64("artid", artid),
+			logger2.Int64("artid", bizId),
 			logger2.Error(er))
 	}()
 	return inter, nil
 }
 
-func (r *CachedInteractiveRepository) Liked(ctx context.Context, biz string, artid int64, uid int64) (bool, error) {
-	_, err := r.dao.GetLikeInfo(ctx, biz, artid, uid)
+func (r *CachedInteractiveRepository) Liked(ctx context.Context, biz string, bizId int64, uid int64) (bool, error) {
+	_, err := r.dao.GetLikeInfo(ctx, biz, bizId, uid)
 	switch err {
 	case nil:
 		return true, nil
@@ -55,8 +60,8 @@ func (r *CachedInteractiveRepository) Liked(ctx context.Context, biz string, art
 	}
 }
 
-func (r *CachedInteractiveRepository) Collected(ctx context.Context, biz string, artid int64, uid int64) (bool, error) {
-	_, err := r.dao.GetCollectInfo(ctx, biz, artid, uid)
+func (r *CachedInteractiveRepository) Collected(ctx context.Context, biz string, bizId int64, uid int64) (bool, error) {
+	_, err := r.dao.GetCollectInfo(ctx, biz, bizId, uid)
 	switch err {
 	case nil:
 		return true, nil

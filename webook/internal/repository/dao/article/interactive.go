@@ -43,27 +43,43 @@ type InteractiveDAO interface {
 	InsertLikeInfo(ctx context.Context, biz string, bizid int64, uid int64) error
 	DeleteLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) error
 	InsertCollectionBiz(ctx context.Context, ob UserCollectionBiz) error
-	GetLikeInfo(ctx context.Context, biz string, artid int64, uid int64) (interface{}, interface{})
-	GetCollectInfo(ctx context.Context, biz string, artid int64, uid int64) (interface{}, interface{})
-	Get(ctx context.Context, biz string, artid int64) (Interactive, error)
+	GetLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserLike, error)
+	GetCollectInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserCollectionBiz, error)
+	Get(ctx context.Context, biz string, bizId int64) (Interactive, error)
+	BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error
 }
 type GORMInteractiveDAO struct {
 	db *gorm.DB
 }
 
-func (g *GORMInteractiveDAO) GetLikeInfo(ctx context.Context, biz string, artid int64, uid int64) (interface{}, interface{}) {
-	//TODO implement me
-	panic("implement me")
+func (g *GORMInteractiveDAO) BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error {
+	return g.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		g := NewGORMInteractiveDAO(tx)
+		for i := 0; i < len(bizs); i++ {
+			err := g.IncrReadCnt(ctx, bizs[i], ids[i])
+			if err != nil {
+				continue
+			}
+		}
+		return nil
+	})
 }
 
-func (g *GORMInteractiveDAO) GetCollectInfo(ctx context.Context, biz string, artid int64, uid int64) (interface{}, interface{}) {
-	//TODO implement me
-	panic("implement me")
+func (g *GORMInteractiveDAO) GetLikeInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserLike, error) {
+	var res UserLike
+	err := g.db.WithContext(ctx).Where("biz =? AND biz_id =? AND u_id =? ANd status =?", biz, bizId, uid, 1).First(&res).Error
+	return res, err
 }
 
-func (g *GORMInteractiveDAO) Get(ctx context.Context, biz string, artid int64) (Interactive, error) {
+func (g *GORMInteractiveDAO) GetCollectInfo(ctx context.Context, biz string, bizId int64, uid int64) (UserCollectionBiz, error) {
+	var res UserCollectionBiz
+	err := g.db.WithContext(ctx).Where("biz = ? AND biz_id = ? AND uid = ?", biz, bizId, uid).First(&res).Error
+	return res, err
+}
+
+func (g *GORMInteractiveDAO) Get(ctx context.Context, biz string, bizId int64) (Interactive, error) {
 	var result Interactive
-	err := g.db.WithContext(ctx).Where("biz=? and article_id=?", biz, artid).First(&result).Error
+	err := g.db.WithContext(ctx).Where("biz=? and biz_id=?", biz, bizId).First(&result).Error
 	return result, err
 }
 

@@ -202,7 +202,7 @@ func (u *ArticleHandle) PubDetail(ctx *gin.Context, uc ijwt.Claim) (Result, erro
 	var art domain.Article
 	var eg errgroup.Group
 	eg.Go(func() error {
-		art, err = u.svc.GetPublishedById(ctx, id)
+		art, err = u.svc.GetPublishedById(ctx, id, uc.UserId)
 		return err
 	})
 	var inter domain.Interactive
@@ -217,14 +217,14 @@ func (u *ArticleHandle) PubDetail(ctx *gin.Context, uc ijwt.Claim) (Result, erro
 			Code: 5,
 		}, err
 	}
-	go func() {
-		er := u.intrsvc.IncrReadCnt(ctx, u.biz, art.Id)
-		if er != nil {
-			u.l.Error("增加阅读计数失败",
-				logger2.Int64("article id", art.Id),
-				logger2.Error(er))
-		}
-	}()
+	//go func() {
+	//	er := u.intrsvc.IncrReadCnt(ctx, u.biz, art.Id)
+	//	if er != nil {
+	//		u.l.Error("增加阅读计数失败",
+	//			logger2.Int64("article id", art.Id),
+	//			logger2.Error(er))
+	//	}
+	//}()
 	return Result{
 		Data: ArticleVO{
 			Id:         art.Id,
