@@ -7,6 +7,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	glogger "gorm.io/gorm/logger"
+	"gorm.io/plugin/prometheus"
 	"log"
 	"time"
 )
@@ -35,6 +36,19 @@ func InitDb(l logger.Loggerv1) *gorm.DB {
 			ParameterizedQueries:      true,
 		}),
 	})
+	err = db.Use(prometheus.New(prometheus.Config{
+		DBName:          "webook",
+		RefreshInterval: 15,
+		StartServer:     false,
+		MetricsCollector: []prometheus.MetricsCollector{
+			&prometheus.MySQL{
+				VariableNames: []string{"thread_running"},
+			},
+		},
+	}))
+	if err != nil {
+		panic(err)
+	}
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
