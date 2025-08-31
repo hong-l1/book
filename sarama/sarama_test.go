@@ -3,6 +3,7 @@ package sarama
 import (
 	"github.com/IBM/sarama"
 	"github.com/stretchr/testify/assert"
+	"log"
 	"testing"
 )
 
@@ -14,11 +15,14 @@ func TestSyncProducer(t *testing.T) {
 	cfg.Producer.Partitioner = sarama.NewCustomPartitioner()
 	producer, err := sarama.NewSyncProducer(addres, cfg)
 	assert.NoError(t, err)
-	_, _, err = producer.SendMessage(&sarama.ProducerMessage{
-		Topic: "test_topic",
-		Value: sarama.StringEncoder("hello,这是一条消息"),
-	})
-	assert.NoError(t, err)
+	for i := 0; i < 100; i++ {
+		_, _, err = producer.SendMessage(&sarama.ProducerMessage{
+			Topic: "article_read",
+			Value: sarama.StringEncoder(`{"aid":1,"uid":123}`),
+		})
+		log.Println(i)
+		assert.NoError(t, err)
+	}
 }
 func TestASyncProducer(t *testing.T) {
 	cfg := sarama.NewConfig()

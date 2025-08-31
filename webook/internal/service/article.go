@@ -56,9 +56,11 @@ func (s *ServiceArticle) Withdraw(ctx context.Context, article domain.Article) e
 	return s.repo.SyncStatus(ctx, article.Id, article.Author.Id, domain.ArticleStatusPrivate)
 }
 
-func NewServiceArticle(repo article.ArticleRepository) ArticleService {
+func NewServiceArticle(repo article.ArticleRepository, l logger.Loggerv1, producer event.Producer) ArticleService {
 	return &ServiceArticle{
-		repo: repo,
+		repo:     repo,
+		l:        l,
+		producer: producer,
 	}
 }
 func NewServiceArticlev1(author article.ArticleAuthorRepository,

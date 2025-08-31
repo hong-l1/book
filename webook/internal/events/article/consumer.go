@@ -34,5 +34,12 @@ func (c *KafkaConsumer) Start() error {
 func (c *KafkaConsumer) Consume(msg *sarama.ConsumerMessage, t ReadEvent) error {
 	ctx, canel := context.WithTimeout(context.Background(), time.Second)
 	defer canel()
-	return c.repo.IncrReadCnt(ctx, "article", t.Uid)
+	return c.repo.IncrReadCnt(ctx, "article", t.Aid)
+}
+func NewKafkaConsumer(l logger.Loggerv1, repo article.InteractiveRepository, client sarama.Client) *KafkaConsumer {
+	return &KafkaConsumer{
+		l:      l,
+		repo:   repo,
+		client: client,
+	}
 }

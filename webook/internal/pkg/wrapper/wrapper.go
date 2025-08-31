@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-var l logger.Logger
+var l logger.Loggerv1
 
 func Wrapper[T any](fn func(ctx *gin.Context, req T) (Result, error), l logger.Loggerv1) gin.HandlerFunc {
 	return func(c *gin.Context) {

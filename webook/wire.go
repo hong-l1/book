@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/google/wire"
+	event "github.com/hong-l1/project/webook/internal/events/article"
 	"github.com/hong-l1/project/webook/internal/repository"
 	"github.com/hong-l1/project/webook/internal/repository/article"
 	"github.com/hong-l1/project/webook/internal/repository/cache"
@@ -23,25 +24,33 @@ func InitWebServer() *App {
 		ioc.Initkafka,
 		ioc.InitSyncProducer,
 		ioc.InitLogger,
+		ProvideBizConfig,
 		// DAO 部分
 		dao.NewUserDao,
 		article2.NewGORMArticleDao,
 		article2.NewGORMInteractiveDAO,
+		event.NewKafkaProducer,
+		event.NewBatchConusmer,
+		//event.NewKafkaConsumer,
+		ioc.InitConsumers,
 		// cache 部分
 		cache.NewUserCache,
 		cache.NewCodeCache,
+		//cache.NewRedisInteractiveCache,
+		cache.NewRedisArticleCache,
 		// repository 部分
 		repository.NewCodeRepository,
 		repository.NewRepository,
-		// Service 部分
 		article.NewCacheArticle,
-		web.NewArticleHandle,
+		article.NewCachedInteractiveRepository,
+		// Service 部分
 		service.NewUserService,
 		service.NewCodeService,
 		service.NewServiceArticle,
 		ioc.InitSmsService,
+		service.NewInteractiveServiceImpl,
 		// handler 部分
-		InitArticleHandle,
+		web.NewArticleHandle,
 		ijwt.NewRedisJWT,
 		ioc.InitOauth2WechatService,
 		web.NewUserHandle,
@@ -52,7 +61,12 @@ func InitWebServer() *App {
 	)
 	return new(App)
 }
-func InitArticleHandle() *web.ArticleHandle {
-	wire.Build(service.NewServiceArticle, web.NewArticleHandle, ioc.InitLogger, article.NewCacheArticle)
-	return &web.ArticleHandle{}
+
+func ProvideBizConfig() string {
+	return "article"
 }
+
+//func InitArticleHandle() *web.ArticleHandle {
+//	wire.Build(service.NewServiceArticle, web.NewArticleHandle, ioc.InitLogger, article.NewCacheArticle)
+//	return &web.ArticleHandle{}
+//}

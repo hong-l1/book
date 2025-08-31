@@ -7,11 +7,12 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	article3 "github.com/hong-l1/project/webook/internal/events/article"
 	"github.com/hong-l1/project/webook/internal/repository"
-	"github.com/hong-l1/project/webook/internal/repository/article"
+	article2 "github.com/hong-l1/project/webook/internal/repository/article"
 	"github.com/hong-l1/project/webook/internal/repository/cache"
 	"github.com/hong-l1/project/webook/internal/repository/dao"
+	"github.com/hong-l1/project/webook/internal/repository/dao/article"
 	"github.com/hong-l1/project/webook/internal/service"
 	"github.com/hong-l1/project/webook/internal/web"
 	"github.com/hong-l1/project/webook/internal/web/jwt"
@@ -24,7 +25,7 @@ import (
 
 // Injectors from wire.go:
 
-func InitWebServer() *gin.Engine {
+func InitWebServer() *App {
 	loggerv1 := ioc.InitLogger()
 	v := ioc.InitMiddlewares(loggerv1)
 	db := ioc.InitDb(loggerv1)
@@ -38,20 +39,33 @@ func InitWebServer() *gin.Engine {
 	smsService := ioc.InitSmsService()
 	codeService := service.NewCodeService(codeRepository, smsService)
 	handle := jwt.NewRedisJWT(cmdable)
-	userHandle := web.NewUserHandle(userService, codeService, handle)
+	userHandle := web.NewUserHandle(userService, codeService, handle, loggerv1)
 	wechatService := ioc.InitOauth2WechatService()
 	oAuth2WeChatHandle := web.NewOAuth2WeChatHandle(wechatService, userService, handle)
-	articleRepository := article.NewCacheArticle()
-	articleService := service.NewServiceArticle(articleRepository)
-	articleHandle := web.NewArticleHandle(loggerv1, articleService)
+	articleDao := article.NewGORMArticleDao(db)
+	articleCache := cache.NewRedisArticleCache(cmdable)
+	articleRepository := article2.NewCacheArticle(articleDao, db, articleCache, loggerv1)
+	client := ioc.Initkafka()
+	syncProducer := ioc.InitSyncProducer(client)
+	producer := article3.NewKafkaProducer(syncProducer)
+	articleService := service.NewServiceArticle(articleRepository, loggerv1, producer)
+	interactiveDAO := article.NewGORMInteractiveDAO(db)
+	interactiveRepository := article2.NewCachedInteractiveRepository(interactiveDAO, loggerv1)
+	interactiveService := service.NewInteractiveServiceImpl(interactiveRepository)
+	string2 := ProvideBizConfig()
+	articleHandle := web.NewArticleHandle(loggerv1, articleService, interactiveService, string2)
 	engine := ioc.InitGin(v, userHandle, oAuth2WeChatHandle, articleHandle)
-	return engine
+	batchConusmer := article3.NewBatchConusmer(loggerv1, interactiveRepository, client)
+	v2 := ioc.InitConsumers(batchConusmer)
+	app := &App{
+		Server:    engine,
+		Consumers: v2,
+	}
+	return app
 }
 
-func InitArticleHandle() *web.ArticleHandle {
-	loggerv1 := ioc.InitLogger()
-	articleRepository := article.NewCacheArticle()
-	articleService := service.NewServiceArticle(articleRepository)
-	articleHandle := web.NewArticleHandle(loggerv1, articleService)
-	return articleHandle
+// wire.go:
+
+func ProvideBizConfig() string {
+	return "article"
 }

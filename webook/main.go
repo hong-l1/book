@@ -17,11 +17,16 @@ func main() {
 	//fmt.Println(keys)
 	//setting := viper.AllSettings()
 	//fmt.Println(setting)
-	Initviper11()
-	//initLogger()
-	//app := InitWebServer()
-	//
-	//	Server.Run(":8080")
+	//Initviper11()
+	InitPrometheus()
+	app := InitWebServer()
+	for _, c := range app.Consumers {
+		err := c.Start()
+		if err != nil {
+			panic(err)
+		}
+	}
+	app.Server.Run(":8080")
 }
 func initViper() {
 	viper.SetDefault("db.mysql.dsn", "root:123456@tcp(localhost:6380)/webook?charset=utf8mb4&parseTime=True&loc=Local")

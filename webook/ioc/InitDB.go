@@ -16,7 +16,7 @@ func InitDb(l logger.Loggerv1) *gorm.DB {
 		Dsn string `mapstructure:"dsn"`
 	}
 	cfg := config{
-		Dsn: "root:123456@tcp(localhost:6380)/webook?charset=utf8mb4&parseTime=True&loc=Local/default",
+		Dsn: "root:123456@tcp(localhost:6380)/webook?charset=utf8mb4&parseTime=True&loc=Local",
 	}
 	err := viper.UnmarshalKey("db.mysql", &cfg)
 	if err != nil {

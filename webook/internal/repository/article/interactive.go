@@ -25,7 +25,7 @@ type CachedInteractiveRepository struct {
 }
 
 func (r *CachedInteractiveRepository) BatchIncrReadCnt(ctx context.Context, bizs []string, ids []int64) error {
-	err := r.dao.BatchIncrReadCnt(ctx, bizs, ids)
+	return r.dao.BatchIncrReadCnt(ctx, bizs, ids)
 }
 
 func (r *CachedInteractiveRepository) Get(ctx context.Context, biz string, bizId int64) (domain.Interactive, error) {

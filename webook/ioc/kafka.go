@@ -5,7 +5,7 @@ import (
 	"github.com/hong-l1/project/webook/internal/events/article"
 )
 
-var addres = []string{"127.0.0.1:9092"}
+var addres = []string{"127.0.0.1:9094"}
 
 func Initkafka() sarama.Client {
 	cfg := sarama.NewConfig()
@@ -23,6 +23,6 @@ func InitSyncProducer(c sarama.Client) sarama.SyncProducer {
 	}
 	return p
 }
-func InitConsumers(c *article.KafkaConsumer) []article.Consumer {
+func InitConsumers(c *article.BatchConusmer) []article.Consumer {
 	return []article.Consumer{c}
 }

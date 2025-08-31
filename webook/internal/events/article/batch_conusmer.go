@@ -45,3 +45,10 @@ func (c *BatchConusmer) Consume(msg []*sarama.ConsumerMessage, t []ReadEvent) er
 	}
 	return nil
 }
+func NewBatchConusmer(l logger.Loggerv1, repo article.InteractiveRepository, client sarama.Client) *BatchConusmer {
+	return &BatchConusmer{
+		l:      l,
+		repo:   repo,
+		client: client,
+	}
+}
