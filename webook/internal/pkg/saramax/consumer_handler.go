@@ -24,6 +24,7 @@ func NewHandler[T any](l logger2.Loggerv1, fn func(msg *sarama.ConsumerMessage, 
 	}
 }
 func (h Handler[T]) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	//在这里打监控
 	msgs := claim.Messages()
 	for msg := range msgs {
 		var t T

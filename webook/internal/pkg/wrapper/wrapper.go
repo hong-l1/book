@@ -12,8 +12,9 @@ var l logger.Loggerv1
 func Wrapper[T any](fn func(ctx *gin.Context, req T) (Result, error), l logger.Loggerv1) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req T
-		err := c.Bind(req)
+		err := c.Bind(&req)
 		if err != nil {
+			c.JSON(http.StatusOK, "test")
 			return
 		}
 		result, err := fn(c, req)

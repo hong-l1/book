@@ -14,5 +14,8 @@ func InitRedis() redis.Cmdable {
 		Username: "default",
 		Password: "123456",
 	})
+	//redisClient.AddHook(redisx.NewPrometheusHook(prometheus.SummaryOpts{
+	//
+	//}))
 	return redisClient
 }

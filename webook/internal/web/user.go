@@ -29,6 +29,10 @@ type UserHandle struct {
 	cmd redis.Cmdable
 	l   logger.Loggerv1
 }
+type LohInReq struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
 const biz = "login"
 
@@ -239,12 +243,6 @@ func (u *UserHandle) LogIn(ctx *gin.Context) {
 	ctx.String(http.StatusOK, "登录成功")
 	return
 }
-
-type LohInReq struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 func (u *UserHandle) LogInJwt(ctx *gin.Context, req LohInReq) (Result, error) {
 	user, err := u.svc.LogIn(ctx, domain.User{
 		Email:    req.Email,
