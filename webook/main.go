@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
+	"github.com/hong-l1/project/webook/ioc"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
+	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -19,6 +23,7 @@ func main() {
 	//fmt.Println(setting)
 	//Initviper11()
 	InitPrometheus()
+	closefunc := Initopentelemetry()
 	app := InitWebServer()
 	for _, c := range app.Consumers {
 		err := c.Start()
@@ -26,7 +31,10 @@ func main() {
 			panic(err)
 		}
 	}
+	ctx, canel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer canel()
 	app.Server.Run(":8080")
+	closefunc(ctx)
 }
 func initViper() {
 	viper.SetDefault("db.mysql.dsn", "root:123456@tcp(localhost:6380)/webook?charset=utf8mb4&parseTime=True&loc=Local")
@@ -88,4 +96,20 @@ func InitPrometheus() {
 		http.Handle("/metrics", promhttp.Handler())
 		http.ListenAndServe(":8081", nil)
 	}()
+}
+func Initopentelemetry() func(ctx context.Context) {
+	res, err := ioc.NewResource("webook", "v0.0.1")
+	if err != nil {
+		panic(err)
+	}
+	prop := ioc.NewPropagator()
+	otel.SetTextMapPropagator(prop)
+	tp, err := ioc.NewTraceProvider(res)
+	if err != nil {
+		panic(err)
+	}
+	otel.SetTracerProvider(tp)
+	return func(ctx context.Context) {
+		tp.Shutdown(ctx)
+	}
 }

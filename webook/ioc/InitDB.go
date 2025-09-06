@@ -7,6 +7,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	glogger "gorm.io/gorm/logger"
+	"gorm.io/plugin/opentelemetry/tracing"
 	"gorm.io/plugin/prometheus"
 	"log"
 	"time"
@@ -51,6 +52,7 @@ func InitDb(l logger.Loggerv1) *gorm.DB {
 	}
 	pcb := NewCallbaks()
 	pcb.registerAll(db)
+	db.Use(tracing.NewPlugin())
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
