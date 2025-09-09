@@ -16,11 +16,17 @@ type ArticleDao interface {
 	SyncStatus(ctx context.Context, articleId int64, AuthorId int64, status uint8) error
 	GetbyAuthor(ctx context.Context, id int64, offset int, limit int) ([]Article, error)
 	GetById(ctx context.Context, id int64) (Article, error)
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]Article, error)
 }
 type GORMArticleDao struct {
 	db *gorm.DB
 }
 
+func (g *GORMArticleDao) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]Article, error) {
+	var res []Article
+	err := g.db.WithContext(ctx).Where("utime < ? ", start.UnixMilli()).Order("utime desc").Offset(offset).Limit(limit).Find(&res).Error
+	return res, err
+}
 func (g *GORMArticleDao) GetById(ctx context.Context, id int64) (Article, error) {
 	//id是article id
 	var art Article

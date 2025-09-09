@@ -52,7 +52,8 @@ func InitDb(l logger.Loggerv1) *gorm.DB {
 	}
 	pcb := NewCallbaks()
 	pcb.registerAll(db)
-	db.Use(tracing.NewPlugin())
+	db.Use(tracing.NewPlugin(tracing.WithDBSystem("webook"),
+		tracing.WithoutMetrics(), tracing.WithoutQueryVariables()))
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}

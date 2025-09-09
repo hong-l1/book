@@ -25,7 +25,7 @@ services:
     ports:
       - 9090:9090
   grafana:
-    image: grafana/grafana-enterprise:10.2.0
+    image: docker.io/grafana/grafana-enterprise:10.2.0  # 显式指定 docker.io
     ports:
       - 3000:3000
   zipkin:

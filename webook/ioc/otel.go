@@ -10,6 +10,7 @@ import (
 )
 
 func NewResource(serviceName, serviceVersion string) (*resource.Resource, error) {
+	//整个tracing的特征信息和描述方式
 	return resource.Merge(resource.Default(),
 		resource.NewWithAttributes(semconv.SchemaURL,
 			semconv.ServiceName(serviceName),
@@ -17,11 +18,13 @@ func NewResource(serviceName, serviceVersion string) (*resource.Resource, error)
 		))
 }
 func NewTraceProvider(res *resource.Resource) (*trace.TracerProvider, error) {
+	//exporter将收集到的span发送到zipkin后端
 	exporter, err := zipkin.New(
 		"http://localhost:9411/api/v2/spans")
 	if err != nil {
 		return nil, err
 	}
+	//定义trace生产span要带的信息，exporter收集span的策略
 	traceProvider := trace.NewTracerProvider(
 		trace.WithBatcher(exporter,
 			trace.WithBatchTimeout(time.Second)),

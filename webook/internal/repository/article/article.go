@@ -24,6 +24,7 @@ type ArticleRepository interface {
 	GetById(ctx context.Context, id int64) (domain.Article, error)
 	PreCache(ctx context.Context, data []domain.Article)
 	GetPublishedById(ctx context.Context, artid int64) (domain.Article, error)
+	ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error)
 }
 type CacheArticle struct {
 	dao article.ArticleDao
@@ -33,6 +34,16 @@ type CacheArticle struct {
 	db       *gorm.DB
 	cache    cache.ArticleCache
 	l        logger.Loggerv1
+}
+
+func (r *CacheArticle) ListPub(ctx context.Context, start time.Time, offset int, limit int) ([]domain.Article, error) {
+	res, err := r.dao.ListPub(ctx, start, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	return slice.Map(res, func(idx int, dao article.Article) domain.Article {
+		return r.todomain(dao)
+	}), nil
 }
 
 func (r *CacheArticle) GetPublishedById(ctx context.Context, artid int64) (domain.Article, error) {

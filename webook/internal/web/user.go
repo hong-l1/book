@@ -244,7 +244,7 @@ func (u *UserHandle) LogIn(ctx *gin.Context) {
 	return
 }
 func (u *UserHandle) LogInJwt(ctx *gin.Context, req LohInReq) (Result, error) {
-	user, err := u.svc.LogIn(ctx, domain.User{
+	user, err := u.svc.LogIn(ctx.Request.Context(), domain.User{
 		Email:    req.Email,
 		Password: req.Password,
 	})
