@@ -31,8 +31,11 @@ func main() {
 			panic(err)
 		}
 	}
+	app.cron.Start()
 	ctx, canel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer canel()
+	c := app.cron.Stop()
+	<-c.Done()
 	app.Server.Run(":8080")
 	closefunc(ctx)
 }

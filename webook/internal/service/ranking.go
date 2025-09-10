@@ -23,11 +23,12 @@ type BatchRankingService struct {
 	batchCnt int
 }
 
-func NewBatchRankingService(artSvc ArticleService, intrSvc InteractiveService) *BatchRankingService {
+func NewBatchRankingService(artSvc ArticleService, intrSvc InteractiveService, repo repository.RankingRepository) RankingService {
 	return &BatchRankingService{
 		artSvc:   artSvc,
 		intrSvc:  intrSvc,
 		capicity: 100,
+		repo:     repo,
 		batchCnt: 100,
 		caculate: func(timer time.Time, likeCnt int64) float64 {
 			duration := time.Since(timer).Seconds()
@@ -37,8 +38,10 @@ func NewBatchRankingService(artSvc ArticleService, intrSvc InteractiveService) *
 
 func (s *BatchRankingService) TOPN(ctx context.Context) error {
 	arts, err := s.tOPN(ctx)
-	if err!=nil { return err }
-	err=s.repo.ReplaceTopN(ctx, arts)
+	if err != nil {
+		return err
+	}
+	err = s.repo.ReplaceTopN(ctx, arts)
 	return err
 }
 func (s *BatchRankingService) tOPN(ctx context.Context) ([]domain.Article, error) {

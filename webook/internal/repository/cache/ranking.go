@@ -39,3 +39,9 @@ func (r *RedisRanking) Get(ctx context.Context) ([]domain.Article, error) {
 	}
 	return val, nil
 }
+func NewRedisRankingRepository(client redis.Cmdable) RankingCache {
+	return &RedisRanking{
+		client: client,
+		key:    "ranking",
+	}
+}

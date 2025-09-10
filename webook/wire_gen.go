@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/google/wire"
 	article3 "github.com/hong-l1/project/webook/internal/events/article"
 	"github.com/hong-l1/project/webook/internal/repository"
 	article2 "github.com/hong-l1/project/webook/internal/repository/article"
@@ -57,14 +58,22 @@ func InitWebServer() *App {
 	engine := ioc.InitGin(v, userHandle, oAuth2WeChatHandle, articleHandle)
 	batchConusmer := article3.NewBatchConusmer(loggerv1, interactiveRepository, client)
 	v2 := ioc.InitConsumers(batchConusmer)
+	rankingCache := cache.NewRedisRankingRepository(cmdable)
+	rankingRepository := repository.NewCacheRankingRepository(rankingCache)
+	rankingService := service.NewBatchRankingService(articleService, interactiveService, rankingRepository)
+	rankingJob := ioc.InitRankingJob(rankingService)
+	cron := ioc.InitJobs(loggerv1, rankingJob)
 	app := &App{
 		Server:    engine,
 		Consumers: v2,
+		cron:      cron,
 	}
 	return app
 }
 
 // wire.go:
+
+var RankingserviceSet = wire.NewSet(repository.NewCacheRankingRepository, cache.NewRedisRankingRepository, service.NewBatchRankingService)
 
 func ProvideBizConfig() string {
 	return "article"

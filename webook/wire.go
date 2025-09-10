@@ -16,6 +16,12 @@ import (
 	"github.com/hong-l1/project/webook/ioc"
 )
 
+var RankingserviceSet = wire.NewSet(
+	repository.NewCacheRankingRepository,
+	cache.NewRedisRankingRepository,
+	service.NewBatchRankingService,
+)
+
 func InitWebServer() *App {
 	wire.Build(
 		// 第三方依赖
@@ -25,6 +31,9 @@ func InitWebServer() *App {
 		ioc.InitSyncProducer,
 		ioc.InitLogger,
 		ProvideBizConfig,
+		RankingserviceSet,
+		ioc.InitJobs,
+		ioc.InitRankingJob,
 		// DAO 部分
 		dao.NewUserDao,
 		article2.NewGORMArticleDao,
