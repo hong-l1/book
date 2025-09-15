@@ -83,9 +83,9 @@ func (s *BatchRankingService) tOPN(ctx context.Context) ([]domain.Article, error
 			if errors.Is(err, queue.ErrOutOfCapacity) {
 				minEle, _ := temp.Dequeue()
 				if score > minEle.score {
-					temp.Enqueue(ele)
+					_ = temp.Enqueue(ele)
 				} else {
-					temp.Enqueue(minEle)
+					_ = temp.Enqueue(minEle)
 				}
 			}
 		}

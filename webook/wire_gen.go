@@ -61,7 +61,8 @@ func InitWebServer() *App {
 	rankingCache := cache.NewRedisRankingRepository(cmdable)
 	rankingRepository := repository.NewCacheRankingRepository(rankingCache)
 	rankingService := service.NewBatchRankingService(articleService, interactiveService, rankingRepository)
-	rankingJob := ioc.InitRankingJob(rankingService)
+	rlockClient := ioc.InitRlockClient(cmdable)
+	rankingJob := ioc.InitRankingJob(rankingService, rlockClient, loggerv1)
 	cron := ioc.InitJobs(loggerv1, rankingJob)
 	app := &App{
 		Server:    engine,

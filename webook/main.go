@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
 	"go.opentelemetry.io/otel"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
 )
@@ -20,7 +19,6 @@ func main() {
 	//keys := viper.AllKeys()
 	//fmt.Println(keys)
 	//setting := viper.AllSettings()
-	//fmt.Println(setting)
 	//Initviper11()
 	InitPrometheus()
 	closefunc := Initopentelemetry()
@@ -86,13 +84,6 @@ func InitViperRemote() {
 	if err != nil {
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
-}
-func initLogger() {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-	zap.ReplaceGlobals(logger)
 }
 func InitPrometheus() {
 	go func() {

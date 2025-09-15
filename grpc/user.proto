@@ -1,0 +1,18 @@
+syntax ="proto3";
+option go_package="github.com/hong-l1/project/grpc";
+message User {
+  int32 id =1;
+  string name=2;
+  repeated string nickname=3;
+  map<string,int32> age =4;
+
+}
+enum Generd {
+  man =0;
+  woman=1;
+}
+service UserService{
+  rpc GetById(User)returns(A);
+}
+message A{
+}

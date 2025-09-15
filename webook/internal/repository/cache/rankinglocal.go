@@ -34,3 +34,7 @@ func (r *RankingLocalCache) Get(ctx context.Context, key string) ([]domain.Artic
 	}
 	return data, nil
 }
+
+func (r *RankingLocalCache) Foreget(ctx context.Context) ([]domain.Article, error) {
+	panic("implement me")
+}

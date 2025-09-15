@@ -34,6 +34,7 @@ func InitWebServer() *App {
 		RankingserviceSet,
 		ioc.InitJobs,
 		ioc.InitRankingJob,
+		ioc.InitRlockClient,
 		// DAO 部分
 		dao.NewUserDao,
 		article2.NewGORMArticleDao,
